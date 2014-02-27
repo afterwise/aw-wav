@@ -38,10 +38,6 @@ extern "C" {
 
 #define WAV_HEADER_SIZE (44)
 
-#if _MSC_VER
-# pragma pack(push, 1)
-#endif
-
 struct wav_info {
 	const void *blocks;
 	uint64_t size;
@@ -50,6 +46,10 @@ struct wav_info {
 	unsigned sample_format;
 	unsigned channel_count;
 };
+
+#if _MSC_VER
+# pragma pack(push, 1)
+#endif
 
 struct _wav_packed wav_chunk {
 	uint32_t id;
