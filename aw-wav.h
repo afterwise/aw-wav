@@ -24,27 +24,10 @@
 #ifndef AW_WAV_H
 #define AW_WAV_H
 
-#include <stdint.h>
-#if __linux__
-# include <endian.h>
-#elif __APPLE__
-# include <libkern/OSByteOrder.h>
-# define htobe16 OSSwapHostToBigInt16
-# define htole16 OSSwapHostToLittleInt16
-# define be16toh OSSwapBigToHostInt16
-# define le16toh OSSwapLittleToHostInt16
-# define htobe32 OSSwapHostToBigInt32
-# define htole32 OSSwapHostToLittleInt32
-# define be32toh OSSwapBigToHostInt32
-# define le32toh OSSwapLittleToHostInt32
-# define htobe64 OSSwapHostToBigInt64
-# define htole64 OSSwapHostToLittleInt64
-# define be64toh OSSwapBigToHostInt64
-# define le64toh OSSwapLittleToHostInt64
-#endif
+#include "aw-endian.h"
 
 #if __GNUC__
-# define _wav_alwaysinline inline __attribute__((always_inline, nodebug))
+# define _wav_alwaysinline inline __attribute__((always_inline))
 # define _wav_packed __attribute__((packed))
 #elif _MSC_VER
 # define _wav_alwaysinline __forceinline
@@ -62,11 +45,11 @@ extern "C" {
 
 struct wav_info {
 	const void *blocks;
-	uint64_t size;
-	double sample_rate;
-	uint64_t frame_count;
-	unsigned sample_format;
-	unsigned channel_count;
+	u64 size;
+	f64 sample_rate;
+	u64 frame_count;
+	u32 sample_format;
+	u32 channel_count;
 };
 
 #if _MSC_VER
@@ -74,21 +57,21 @@ struct wav_info {
 #endif
 
 struct _wav_packed wav_chunk {
-	uint32_t id;
-	uint32_t size;
+	u32 id;
+	u32 size;
 };
 
 struct _wav_packed wav_riff {
-        uint32_t format;
+        u32 format;
 };
 
 struct _wav_packed wav_format {
-        uint16_t format;
-        uint16_t channel_count;
-        uint32_t sample_rate;
-        uint32_t byte_rate;
-        uint16_t block_align;
-        uint16_t bits_per_sample;
+        u16 format;
+        u16 channel_count;
+        u32 sample_rate;
+        u32 byte_rate;
+        u16 block_align;
+        u16 bits_per_sample;
 };
 
 #if _MSC_VER
@@ -99,20 +82,20 @@ static int wav_parse(struct wav_info *info, const void *data) {
 	const struct wav_chunk *chunk = data;
 	const struct wav_riff *riff = (const void *) &chunk[1];
 	const struct wav_format *format;
-	uint32_t chunk_id;
-	uint32_t chunk_size;
+	u32 chunk_id;
+	u32 chunk_size;
 
-	if (be32toh(chunk->id) != 'RIFF')
+	if (btoh32(chunk->id) != 'RIFF')
 		return -1;
 
-	if (be32toh(riff->format) != 'WAVE')
+	if (btoh32(riff->format) != 'WAVE')
 		return -2;
 
 	chunk = (const void *) &riff[1];
 
 	for (;;) {
-		chunk_id = be32toh(chunk->id);
-		chunk_size = le32toh(chunk->size);
+		chunk_id = btoh32(chunk->id);
+		chunk_size = ltoh32(chunk->size);
 
 		if (chunk_id == 'fmt ')
 			format = (const void *) &chunk[1];
@@ -124,11 +107,11 @@ static int wav_parse(struct wav_info *info, const void *data) {
 
 	info->blocks = &chunk[1];
 	info->size = chunk_size;
-	info->sample_rate = le32toh(format->sample_rate);
-	info->sample_format = le16toh(format->format);
-	info->channel_count = le16toh(format->channel_count);
+	info->sample_rate = ltoh32(format->sample_rate);
+	info->sample_format = ltoh16(format->format);
+	info->channel_count = ltoh16(format->channel_count);
 
-	info->frame_count = chunk_size / info->channel_count / le16toh(format->bits_per_sample);
+	info->frame_count = chunk_size / info->channel_count / ltoh16(format->bits_per_sample);
 
 	if (info->sample_format != WAV_FORMAT_INT16 &&
 			info->sample_format != WAV_FORMAT_FLOAT32)
@@ -151,27 +134,27 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 		return -1;
 
 	chunk = buffer;
-	chunk->id = htobe32('RIFF');
-	chunk->size = htole32(36 + info->size);
+	chunk->id = htob32('RIFF');
+	chunk->size = htol32(36 + info->size);
 
 	riff = (void *) &chunk[1];
-	riff->format = htobe32('WAVE');
+	riff->format = htob32('WAVE');
 
 	chunk = (void *) &riff[1];
-	chunk->id = htobe32('fmt ');
+	chunk->id = htob32('fmt ');
 	chunk->size = 16;
 
 	format = (void *) &chunk[1];
-	format->format = htole16((uint16_t) info->sample_format);
-	format->channel_count = htole16((uint16_t) info->channel_count);
-	format->sample_rate = htole32((uint32_t) info->sample_rate);
-	format->byte_rate = htole32((uint32_t) (info->sample_rate * nbytes * info->channel_count));
-	format->block_align = htole16((uint16_t) (nbytes * info->channel_count));
-	format->bits_per_sample = htole16(nbytes * 8);
+	format->format = htol16((u16) info->sample_format);
+	format->channel_count = htol16((u16) info->channel_count);
+	format->sample_rate = htol32((u32) info->sample_rate);
+	format->byte_rate = htol32((u32) (info->sample_rate * nbytes * info->channel_count));
+	format->block_align = htol16((u16) (nbytes * info->channel_count));
+	format->bits_per_sample = htol16(nbytes * 8);
 
 	chunk = (void *) &format[1];
-	chunk->id = htobe32('data');
-	chunk->size = htole32((uint32_t)  info->size);
+	chunk->id = htob32('data');
+	chunk->size = htol32((u32)  info->size);
 
 	return 0;
 }
