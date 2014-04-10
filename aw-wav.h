@@ -35,8 +35,8 @@
 #endif
 
 #define wav_fourcc(a,b,c,d) \
-        ((u32) (u8) (a) | ((u32) (u8)( b) << 8) | \
-        ((u32) (u8) (c) << 16) | ((u32) (u8) (d) << 24))
+        ((u32) (u8) (d) | ((u32) (u8) (c) << 8) | \
+        ((u32) (u8) (b) << 16) | ((u32) (u8) (a) << 24))
 
 #ifdef __cplusplus
 extern "C" {
