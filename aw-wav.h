@@ -34,6 +34,10 @@
 # define _wav_packed
 #endif
 
+#define wav_fourcc(a,b,c,d) \
+        ((u32) (u8) (a) | ((u32) (u8)( b) << 8) | \
+        ((u32) (u8) (c) << 16) | ((u32) (u8) (d) << 24))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -85,10 +89,10 @@ static int wav_parse(struct wav_info *info, const void *data) {
 	u32 chunk_id;
 	u32 chunk_size;
 
-	if (btoh32(chunk->id) != 'RIFF')
+	if (btoh32(chunk->id) != wav_fourcc('R', 'I', 'F', 'F'))
 		return -1;
 
-	if (btoh32(riff->format) != 'WAVE')
+	if (btoh32(riff->format) != wav_fourcc('W', 'A', 'V', 'E'))
 		return -2;
 
 	chunk = (const void *) &riff[1];
@@ -97,9 +101,9 @@ static int wav_parse(struct wav_info *info, const void *data) {
 		chunk_id = btoh32(chunk->id);
 		chunk_size = ltoh32(chunk->size);
 
-		if (chunk_id == 'fmt ')
+		if (chunk_id == wav_fourcc('f', 'm', 't', ' '))
 			format = (const void *) &chunk[1];
-		else if (chunk_id == 'data')
+		else if (chunk_id == wav_fourcc('d', 'a', 't', 'a'))
 			break;
 
 		chunk = (const void *) ((const uint8_t *) &chunk[1] + chunk_size);
@@ -134,14 +138,14 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 		return -1;
 
 	chunk = buffer;
-	chunk->id = htob32('RIFF');
+	chunk->id = htob32(wav_fourcc('R', 'I', 'F', 'F'));
 	chunk->size = htol32(36 + info->size);
 
 	riff = (void *) &chunk[1];
-	riff->format = htob32('WAVE');
+	riff->format = htob32(wav_fourcc('W', 'A', 'V', 'E'));
 
 	chunk = (void *) &riff[1];
-	chunk->id = htob32('fmt ');
+	chunk->id = htob32(wav_fourcc('f', 'm', 't', ' '));
 	chunk->size = 16;
 
 	format = (void *) &chunk[1];
@@ -153,7 +157,7 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 	format->bits_per_sample = htol16(nbytes * 8);
 
 	chunk = (void *) &format[1];
-	chunk->id = htob32('data');
+	chunk->id = htob32(wav_fourcc('d', 'a', 't', 'a'));
 	chunk->size = htol32((u32)  info->size);
 
 	return 0;
