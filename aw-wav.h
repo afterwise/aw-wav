@@ -106,7 +106,7 @@ static int wav_parse(struct wav_info *info, const void *data) {
 		else if (chunk_id == wav_fourcc('d', 'a', 't', 'a'))
 			break;
 
-		chunk = (const void *) ((const uint8_t *) &chunk[1] + chunk_size);
+		chunk = (const void *) ((const u8 *) &chunk[1] + chunk_size);
 	}
 
 	info->blocks = &chunk[1];
