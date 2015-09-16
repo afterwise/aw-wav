@@ -32,8 +32,10 @@
 
 #if __GNUC__
 # define _wav_alwaysinline inline __attribute__((always_inline))
+# define _wav_unused __attribute__((__unused__))
 #elif _MSC_VER
 # define _wav_alwaysinline __forceinline
+# define _wav_unused
 #endif
 
 #define wav_fourcc(a,b,c,d) \
@@ -160,6 +162,7 @@ static _wav_alwaysinline wav_u32_t wav_htol32(wav_u32_t v) { return v; }
 static _wav_alwaysinline wav_u64_t wav_htol64(wav_u64_t v) { return v; }
 #endif
 
+static int wav_parse(struct wav_info *info, const void *data) _wav_unused;
 static int wav_parse(struct wav_info *info, const void *data) {
 	const struct wav_chunk *chunk = data;
 	const struct wav_riff *riff = (const void *) &chunk[1];
@@ -202,7 +205,7 @@ static int wav_parse(struct wav_info *info, const void *data) {
 	return 0;
 }
 
-#if WAV_WRITE
+static int wav_write(void *buffer, const struct wav_info *info) _wav_unused;
 static int wav_write(void *buffer, const struct wav_info *info) {
 	struct wav_chunk *chunk;
 	struct wav_riff *riff;
@@ -241,7 +244,6 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 
 	return 0;
 }
-#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

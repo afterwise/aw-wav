@@ -1,6 +1,4 @@
 
-#define WAV_WRITE 1
-
 #include "aw-wav.h"
 #include "aw-fs.h"
 
