@@ -46,8 +46,9 @@
 extern "C" {
 #endif
 
-#define WAV_FORMAT_INT16 (1)
-#define WAV_FORMAT_FLOAT32 (3)
+#define WAV_FORMAT_INT16 (0x1)
+#define WAV_FORMAT_FLOAT32 (0x3)
+#define WAV_FORMAT_IMA (0x11)
 
 #define WAV_HEADER_SIZE (44)
 
@@ -72,8 +73,8 @@ struct wav_info {
 	wav_u64_t size;
 	wav_f64_t sample_rate;
 	wav_u64_t frame_count;
-	wav_u32_t sample_format;
 	wav_u32_t channel_count;
+	wav_u32_t sample_format;
 };
 
 #if _MSC_VER
@@ -197,10 +198,6 @@ static int wav_parse(struct wav_info *info, const void *data) {
 	info->channel_count = wav_ltoh16(format->channel_count);
 
 	info->frame_count = chunk_size / info->channel_count / (wav_ltoh16(format->bits_per_sample) / 8);
-
-	if (info->sample_format != WAV_FORMAT_INT16 &&
-			info->sample_format != WAV_FORMAT_FLOAT32)
-		return -3;
 
 	return 0;
 }
