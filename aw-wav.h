@@ -165,8 +165,8 @@ static _wav_alwaysinline wav_u64_t wav_htol64(wav_u64_t v) { return v; }
 
 static int wav_parse(struct wav_info *info, const void *data) _wav_unused;
 static int wav_parse(struct wav_info *info, const void *data) {
-	const struct wav_chunk *chunk = data;
-	const struct wav_riff *riff = (const void *) &chunk[1];
+	const struct wav_chunk *chunk = (const struct wav_chunk *) data;
+	const struct wav_riff *riff = (const struct wav_riff *) &chunk[1];
 	const struct wav_format *format;
 	wav_u32_t chunk_id;
 	wav_u32_t chunk_size;
@@ -177,18 +177,18 @@ static int wav_parse(struct wav_info *info, const void *data) {
 	if (wav_btoh32(riff->format) != wav_fourcc('W', 'A', 'V', 'E'))
 		return -2;
 
-	chunk = (const void *) &riff[1];
+	chunk = (const struct wav_chunk *) &riff[1];
 
 	for (;;) {
 		chunk_id = wav_btoh32(chunk->id);
 		chunk_size = wav_ltoh32(chunk->size);
 
 		if (chunk_id == wav_fourcc('f', 'm', 't', ' '))
-			format = (const void *) &chunk[1];
+			format = (const struct wav_format *) &chunk[1];
 		else if (chunk_id == wav_fourcc('d', 'a', 't', 'a'))
 			break;
 
-		chunk = (const void *) ((const wav_u8_t *) &chunk[1] + chunk_size);
+		chunk = (const struct wav_chunk *) ((const wav_u8_t *) &chunk[1] + chunk_size);
 	}
 
 	info->blocks = &chunk[1];
@@ -216,18 +216,18 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 	else
 		return -1;
 
-	chunk = buffer;
+	chunk = (struct wav_chunk *) buffer;
 	chunk->id = wav_htob32(wav_fourcc('R', 'I', 'F', 'F'));
 	chunk->size = wav_htol32(36 + info->size);
 
-	riff = (void *) &chunk[1];
+	riff = (struct wav_riff *) &chunk[1];
 	riff->format = wav_htob32(wav_fourcc('W', 'A', 'V', 'E'));
 
-	chunk = (void *) &riff[1];
+	chunk = (struct wav_chunk *) &riff[1];
 	chunk->id = wav_htob32(wav_fourcc('f', 'm', 't', ' '));
 	chunk->size = 16;
 
-	format = (void *) &chunk[1];
+	format = (struct wav_format *) &chunk[1];
 	format->format = wav_htol16((wav_u16_t) info->sample_format);
 	format->channel_count = wav_htol16((wav_u16_t) info->channel_count);
 	format->sample_rate = wav_htol32((wav_u32_t) info->sample_rate);
@@ -235,7 +235,7 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 	format->block_align = wav_htol16((wav_u16_t) (nbytes * info->channel_count));
 	format->bits_per_sample = wav_htol16(nbytes * 8);
 
-	chunk = (void *) &format[1];
+	chunk = (struct wav_chunk *) &format[1];
 	chunk->id = wav_htob32(wav_fourcc('d', 'a', 't', 'a'));
 	chunk->size = wav_htol32((wav_u32_t)  info->size);
 
