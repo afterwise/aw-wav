@@ -1,6 +1,6 @@
 
 /*
-   Copyright (c) 2014 Malte Hildingsson, malte (at) afterwi.se
+   Copyright (c) 2014-2021 Malte Hildingsson, malte (at) afterwi.se
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -167,7 +167,7 @@ static int wav_parse(struct wav_info *info, const void *data) _wav_unused;
 static int wav_parse(struct wav_info *info, const void *data) {
 	const struct wav_chunk *chunk = (const struct wav_chunk *) data;
 	const struct wav_riff *riff = (const struct wav_riff *) &chunk[1];
-	const struct wav_format *format;
+	const struct wav_format *format = NULL;
 	wav_u32_t chunk_id;
 	wav_u32_t chunk_size;
 
@@ -218,7 +218,7 @@ static int wav_write(void *buffer, const struct wav_info *info) {
 
 	chunk = (struct wav_chunk *) buffer;
 	chunk->id = wav_htob32(wav_fourcc('R', 'I', 'F', 'F'));
-	chunk->size = wav_htol32(36 + info->size);
+	chunk->size = wav_htol32((wav_u32_t) (36 + info->size));
 
 	riff = (struct wav_riff *) &chunk[1];
 	riff->format = wav_htob32(wav_fourcc('W', 'A', 'V', 'E'));
